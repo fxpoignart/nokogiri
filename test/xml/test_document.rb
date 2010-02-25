@@ -634,6 +634,24 @@ module Nokogiri
         assert @xml.root.respond_to?(:awesome!)
         assert @xml.children.respond_to?(:awesome!)
       end
+
+      def test_c14n
+        doc = Nokogiri::XML('<a> <b> xyz<c/> </b><c/> </a> ')
+        assert_equal "<a> <b> xyz<c></c> </b><c></c> </a>", doc.c14n
+      end
+
+      def test_c14n_with_nodeset
+        doc = Nokogiri::XML <<-EOX
+<a>
+   <b></b>
+   <c> <d>acontent</d></c>
+</a>
+EOX
+        nodeset = doc.xpath "(//. | //@* | //namespace::*)[ancestor-or-self::c]"
+        body = doc.c14n(nodeset)
+        assert_equal "<c> <d>acontent</d></c>", body
+      end
+
     end
   end
 end

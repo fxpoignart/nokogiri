@@ -389,6 +389,48 @@ static VALUE create_entity(int argc, VALUE *argv, VALUE self)
   return Nokogiri_wrap_xml_node(cNokogiriXmlEntityDecl, ptr);
 }
 
+/* call-seq: doc.c14n(node_set)
+ *
+ */
+static VALUE c14n(int argc, VALUE *argv, VALUE self)
+{
+  xmlDocPtr doc ;
+  xmlChar *c14n_doc_txt;
+  VALUE node_set_obj;
+  xmlNodeSetPtr node_set;
+
+  Data_Get_Struct(self, xmlDoc, doc);
+
+  rb_scan_args(argc, argv, "01", &node_set_obj);
+  if (NIL_P(node_set_obj)) {
+    node_set = NULL;
+  } else {
+    Data_Get_Struct(node_set_obj, xmlNodeSet, node_set);
+  }
+
+  int len = xmlC14NDocDumpMemory(
+      doc,
+      node_set,
+      1,
+      NULL,
+      0,
+      &c14n_doc_txt);
+
+  xmlResetLastError();
+
+  if(len < 0) {
+    xmlErrorPtr error = xmlGetLastError();
+    if(error)
+      rb_exc_raise(Nokogiri_wrap_xml_syntax_error((VALUE)NULL, error));
+    else
+      rb_raise(rb_eRuntimeError, "Could not canonicalize document");
+
+    return Qnil;
+  }
+  return NOKOGIRI_STR_NEW2(c14n_doc_txt);
+}
+
+
 VALUE cNokogiriXmlDocument ;
 void init_xml_document()
 {
@@ -416,6 +458,8 @@ void init_xml_document()
   rb_define_method(klass, "url", url, 0);
   rb_define_method(klass, "create_entity", create_entity, -1);
   rb_define_method(klass, "remove_namespaces!", remove_namespaces_bang, 0);
+  rb_define_method(klass, "c14n", c14n, -1);
+
 }
 
 
